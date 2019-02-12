@@ -33,15 +33,6 @@
 
 if(ARGC < 2) {
   print(sprintf("%s: [output blockname] [input blockname 1] [input blockname 2] [[[input blockname N] ... ]",ARG0));
-  exit error 'exiting...'
-
-	#print ARGV
-	out=sprintf("%s: ",ARG0);
-	do for [i=1:ARGC] {
-		out=out.' '.value("ARG".i)
-	}
-
-	print(out)
 
   exit error 'exiting...'
 }
@@ -49,34 +40,34 @@ if(ARGC < 2) {
 set style data points
 set datafile separator tab
 set datafile missing NaN
-set key autotitle columnhead
+set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
-eval(sprintf("stats $%s matrix nooutput name '_GMT_TMP'",ARG2));
+eval(sprintf("stats $%s matrix nooutput name 'GMT_BLOCK_CAT_TMP'",ARG2));
 
 # stats always includes the pseudocolumn 0
-if(_GMT_TMP_size_x < 2) {
+if(GMT_BLOCK_CAT_TMP_size_x < 2) {
 	print( \
 		sprintf("input datablock $%s requires at least one column of data",ARG1));
 
   exit error 'exiting...'
 }
 
-GMT_using_str='using (strcol(1))';
+GMT_BLOCK_CAT_using_str='using (strcol(1))';
 
-do for [i=2 : _GMT_TMP_size_x-1] {
-	GMT_using_str=GMT_using_str.':(strcol('.i.'))';
+do for [i=2 : GMT_BLOCK_CAT_TMP_size_x-1] {
+	GMT_BLOCK_CAT_using_str=GMT_BLOCK_CAT_using_str.':(strcol('.i.'))';
 }
 
-GMT_SET_TABLE=sprintf("set table $%s append separator tab",ARG1);
-#GMT_SET_TABLE=sprintf("set table '%s' append separator tab",ARG1);
+GMT_BLOCK_CAT_SET_TABLE=sprintf("set table $%s append separator tab",ARG1);
+#GMT_BLOCK_CAT_SET_TABLE=sprintf("set table '%s' append separator tab",ARG1);
 
 do for [i=2 : ARGC] {
-	eval(GMT_SET_TABLE);
-	eval(sprintf("plot $%s %s with table",value('ARG'.i),GMT_using_str));
+	eval(GMT_BLOCK_CAT_SET_TABLE);
+	eval(sprintf("plot $%s %s with table",value('ARG'.i),GMT_BLOCK_CAT_using_str));
 	unset table;
 }
 
-undefine GMT_SET_TABLE _GMT_TMP GMT_using_str
+undefine GMT_BLOCK_CAT_*

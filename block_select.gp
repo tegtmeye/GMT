@@ -26,19 +26,14 @@
 #/
 
 
-# filter a datablock into another datablock based on the given criteria
-# NB datablocks have their column name headers stripped out in gnuplot
-# therefore all column references are by number which is less than
-# convenient but necessary under the current version of gnuplot.
+# select, reorder, and duplicate columns in a datablock
 
 # ARG1 is the input datablock name -- do not include the '$'
 # ARG2 is the output datablock name -- do not include the '$'
-# ARG3 is the filtered column number
-# ARG4 is the filter expression where 'val' means the current value in the given #		column. If this expression evaluates to true, val is included in the results
-# ARG5 ... are the remaining column numbers to be included in the block (can be #		repeated)
+# ARG3 ... are the remaining column numbers to be included in the block (can be #		repeated)
 
-if(ARGC < 4) {
-  print(sprintf("%s: [input blockname] [output blockname] [filter_column_no] [filter_expression] [[included_column] ... ]",ARG0));
+if(ARGC < 3) {
+  print(sprintf("%s: [input blockname] [output blockname] [included_column]  [[included_column] ... ]",ARG0));
 
   exit error 'exiting...'
 }
@@ -46,34 +41,28 @@ if(ARGC < 4) {
 set style data points
 set datafile separator tab
 set datafile missing NaN
-# set key autotitle columnhead
 set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
-GMT_BLOCK_FILTER_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
-#GMT_BLOCK_FILTER_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
+GMT_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
+#GMT_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
 
-eval(sprintf("GMT_BLOCK_FILTER_filter(val)=((val %s)?val:NaN)",ARG4));
+GMT_PLOT_CMD=sprintf("plot $%s using (strcol(%s))",ARG1,ARG3);
 
-GMT_BLOCK_FILTER_PLOT_CMD= \
-	sprintf("plot $%s using (GMT_BLOCK_FILTER_filter(strcol(%s)))",ARG1,ARG3);
-
-do for [i=5:ARGC] {
-	GMT_BLOCK_FILTER_PLOT_CMD= \
-		GMT_BLOCK_FILTER_PLOT_CMD.sprintf(":(strcol(%s))",value('ARG'.i));
+do for [i=4:ARGC] {
+	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol(%s))",value('ARG'.i));
 }
 
-GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD." with table";
+GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
 
-#print(GMT_BLOCK_FILTER_PLOT_CMD)
+#print(GMT_PLOT_CMD)
 
-eval(GMT_BLOCK_FILTER_SET_TABLE);
-eval(GMT_BLOCK_FILTER_PLOT_CMD);
+eval(GMT_SET_TABLE);
+eval(GMT_PLOT_CMD);
 
 unset table
 
-
-undefine GMT_BLOCK_FILTER_* GPFUN_GMT_BLOCK_FILTER_*
+undefine GMT_SET_TABLE GMT_PLOT_CMD
 
