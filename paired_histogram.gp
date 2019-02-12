@@ -41,6 +41,7 @@ GMT_PAIRED_HISTOGRAM_subboxwidth = \
 eval("call 'block_cat.gp' GMT_PAIRED_HISTOGRAM_BLOCK_ALL ".ARG4.' '.ARG5);
 
 stats $GMT_PAIRED_HISTOGRAM_BLOCK_ALL using 1 name 'GMT_PAIRED_HISTOGRAM_INPUTCUM' nooutput
+
 call 'histogram_dataset.gnuplot' \
   'GMT_PAIRED_HISTOGRAM_BLOCK_ALL' GMT_PAIRED_HISTOGRAM_BLOCK_ALL_HIST \
   	ARG2 0 1 (GMT_PAIRED_HISTOGRAM_clusterwidth)
@@ -53,79 +54,79 @@ call 'histogram_dataset.gnuplot' \
   ARG5 GMT_PAIRED_HISTOGRAM_BLOCK2_HIST ARG2 1 2 \
 	(GMT_PAIRED_HISTOGRAM_subclusterwidth)
 
-if(ARG3 eq "quartile") {
+if(exists("ARG3") && ARG3 eq "quartile") {
   #median +/- quartile
   set arrow \
-  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_median_y,graph 0 to \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_median_y, graph 1 nohead front \
+  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_median,graph 0 to \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_median, graph 1 nohead front \
   	lt 1 lw 1 lc rgb 'black'
 
   set object rectangle \
-  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile_y,graph 0 \
-    to GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile_y, graph 1 \
+  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile,graph 0 \
+    to GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile, graph 1 \
     fc rgb "black" fillstyle transparent solid .025 noborder back
 
   set object rectangle \
-  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile_y,graph 0 \
-    to GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile_y, graph 1 \
+  	from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile,graph 0 \
+    to GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile, graph 1 \
     fc rgb "black" fillstyle empty border \
     lc rgb 'grey20' lw 1 dt 4 front
 
-  set arrow from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile_y,graph 0.95 rto \
+  set arrow from GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile,graph 0.95 rto \
     graph -0.05,0 backhead lt 1 lw 0.5 lc rgb 'black' front
 
   GMT_PAIRED_HISTOGRAM_histogram_range= \
-  	sprintf('\{%.1f,%.1f,%.1f\}',GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile_y, \
-    	GMT_PAIRED_HISTOGRAM_INPUTCUM_median_y, \
-    	GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile_y)
+  	sprintf('\{%.1f,%.1f,%.1f\}',GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile, \
+    	GMT_PAIRED_HISTOGRAM_INPUTCUM_median, \
+    	GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile)
 
   set label \
   	GMT_PAIRED_HISTOGRAM_histogram_range at \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile_y,graph 0.95 offset \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_lo_quartile,graph 0.95 offset \
   	graph -0.05,0 right
 
-  set arrow from GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile_y,graph 0.95 rto \
+  set arrow from GMT_PAIRED_HISTOGRAM_INPUTCUM_up_quartile,graph 0.95 rto \
     graph 0.05,0 backhead lt 1 lw 0.5 lc rgb 'black' front
 }
 
-if(exists("ARG5") && ARG5 eq "stddev") {
+if(exists("ARG3") && ARG3 eq "stddev") {
   # mean +/- 1 stddev
   set arrow from \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y,graph 0 to \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y, graph 1 nohead front \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean,graph 0 to \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean, graph 1 nohead front \
   	lt 1 lw 0.5 lc rgb 'black'
 
   set object rectangle from \
-  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y - \
-  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y),graph 0 \
-    to (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y + \
-    	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y), graph 1 \
+  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean - \
+  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev),graph 0 \
+    to (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean + \
+    	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev), graph 1 \
     fc rgb "black" fillstyle transparent solid .025 noborder back
 
   set object rectangle from \
-  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y - \
-  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y),graph 0 \
-    to (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y + \
-    	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y), graph 1 \
+  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean - \
+  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev),graph 0 \
+    to (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean + \
+    	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev), graph 1 \
     fc rgb "black" fillstyle empty border \
     lc rgb 'grey20' lw .5 dt 4 front
 
   set arrow from \
-  (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y - \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y),graph 0.95 rto \
+  (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean - \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev),graph 0.95 rto \
     graph -0.05,0 backhead lt 1 lw 0.5 lc rgb 'black' front
 
-  _range = sprintf("%.1f +/-%.1f", \
-  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y,GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y)
+  GMT_PAIRED_HISTOGRAM_range = sprintf("%.1f +/-%.1f", \
+  	GMT_PAIRED_HISTOGRAM_INPUTCUM_mean,GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev)
 
   set label \
-  	_range at (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y - \
-  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y),graph 0.95 \
+  	GMT_PAIRED_HISTOGRAM_range at (GMT_PAIRED_HISTOGRAM_INPUTCUM_mean - \
+  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev),graph 0.95 \
     offset graph -0.05,0 right
 
   set arrow from \
-  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean_y + \
-  		AGMT_PAIRED_HISTOGRAM_INPUTCUM_stddev_y),graph 0.95 rto \
+  	(GMT_PAIRED_HISTOGRAM_INPUTCUM_mean + \
+  		GMT_PAIRED_HISTOGRAM_INPUTCUM_stddev),graph 0.95 rto \
     graph 0.05,0 backhead lt 1 lw 0.5 lc rgb 'black' front
 }
 
