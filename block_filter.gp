@@ -27,14 +27,19 @@
 
 
 # filter a datablock into another datablock based on the given criteria
-# NB datablocks have their column name headers stripped out in gnuplot
-# therefore all column references are by number which is less than
-# convenient but necessary under the current version of gnuplot.
+# N.B. The data is read in as strings. This means that:
+#   a) Any 'set datafile missing ...' specification is reset
+#   b) The read values may be invalid and contain things like NaNs etc
+#   c) Invalid data processing is deferred to the use of the block, not
+#       here.
 
 # ARG1 is the input datablock name -- do not include the '$'
 # ARG2 is the output datablock name -- do not include the '$'
 # ARG3 is the filtered column number
-# ARG4 is the filter expression where 'val' means the current value in the given #		column. If this expression evaluates to true, val is included in the results
+# ARG4 is the filter expression where 'val' means the current value in the given
+#		column. If this expression evaluates to true, val is included in the results
+#   otherwise the column value is 'NaN'
+#     eq (val == 5) or (val eq 'hello')
 # ARG5 ... are the remaining column numbers to be included in the block (can be #		repeated)
 
 if(ARGC < 4) {
@@ -44,25 +49,29 @@ if(ARGC < 4) {
 }
 
 set style data points
+unset datafile
 set datafile separator tab
-set datafile missing NaN
-# set key autotitle columnhead
 set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
+eval(sprintf("GMT_BLOCK_FILTER_filter(val,outval)=((%s)?outval:NaN)",ARG4));
+
+
+
 GMT_BLOCK_FILTER_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
 #GMT_BLOCK_FILTER_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
 
-eval(sprintf("GMT_BLOCK_FILTER_filter(val)=((val %s)?val:NaN)",ARG4));
 
 GMT_BLOCK_FILTER_PLOT_CMD= \
-	sprintf("plot $%s using (GMT_BLOCK_FILTER_filter(strcol(%s)))",ARG1,ARG3);
+	sprintf("plot $%s using (GMT_BLOCK_FILTER_filter(strcol(%s),strcol(%s)))", \
+	  ARG1,ARG3,ARG3);
 
 do for [i=5:ARGC] {
-	GMT_BLOCK_FILTER_PLOT_CMD= \
-		GMT_BLOCK_FILTER_PLOT_CMD.sprintf(":(strcol(%s))",value('ARG'.i));
+	GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD.\
+    sprintf(":(GMT_BLOCK_FILTER_filter(strcol(%s),strcol(%s)))", \
+      ARG3,value('ARG'.i));
 }
 
 GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD." with table";

@@ -25,19 +25,20 @@
 #  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# create a datablock from an input file of column data with headers
+
+# dump the contents of a datablock to a file
 # N.B. The data is read in as strings. This means that:
 #   a) Any 'set datafile missing ...' specification is reset
 #   b) The read values may be invalid and contain things like NaNs etc
 #   c) Invalid data processing is deferred to the use of the block, not
 #       here.
 
-# ARG1 is the data filename
-# ARG2 is the datablock name -- do not include the '$'
-# ARG3 ... are the column names to include in the block (can be repeated)
+# ARG1 is the datablock name. Do not include the '$'.
+# ARG2 is out filename
+# ARG3 is the number of columns to include
 
-if(ARGC <3) {
-  print(sprintf("%s: [data filename] [output blockname] [columnname] [[columnname] ... ]",ARG0));
+if(ARGC < 3 || ARG3 < 1) {
+  print(sprintf("%s: [input blockname] [out_filename] [num columns]",ARG0));
 
   exit error 'exiting...'
 }
@@ -45,30 +46,20 @@ if(ARGC <3) {
 set style data points
 unset datafile
 set datafile separator tab
-set key autotitle columnhead
+set key autotitle
 
-set xrange [*:*]
-set yrange [*:*]
+GMT_BLOCK_DUMP_using_str='using (strcol(1))';
 
-GMT_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
-#GMT_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
-
-GMT_PLOT_CMD=sprintf("plot '%s' using (strcol('%s'))",ARG1,ARG3);
-
-do for [i=4:ARGC] {
-	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol('%s'))",value('ARG'.i));
+if(ARG3 > 1) {
+  do for [i=2 : ARG3] {
+    GMT_BLOCK_DUMP_using_str=GMT_BLOCK_DUMP_using_str.':(strcol('.i.'))';
+  }
 }
 
-GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
-
-# print(GMT_PLOT_CMD)
-
-eval(GMT_SET_TABLE);
-eval(GMT_PLOT_CMD);
+set table ARG2 separator tab
+eval(sprintf("plot $%s %s with table",ARG1,GMT_BLOCK_DUMP_using_str));
 
 unset table
 
-set key autotitle
-
-undefine GMT_SET_TABLE GMT_PLOT_CMD
+undefine GMT_BLOCK_DUMP*
 

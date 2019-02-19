@@ -27,6 +27,11 @@
 
 
 # select, reorder, and duplicate columns in a datablock
+# N.B. The data is read in as strings. This means that:
+#   a) Any 'set datafile missing ...' specification is reset
+#   b) The read values may be invalid and contain things like NaNs etc
+#   c) Invalid data processing is deferred to the use of the block, not
+#       here.
 
 # ARG1 is the input datablock name -- do not include the '$'
 # ARG2 is the output datablock name -- do not include the '$'
@@ -39,8 +44,8 @@ if(ARGC < 3) {
 }
 
 set style data points
+unset datafile
 set datafile separator tab
-set datafile missing NaN
 set key autotitle
 
 set xrange [*:*]
@@ -55,14 +60,12 @@ do for [i=4:ARGC] {
 	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol(%s))",value('ARG'.i));
 }
 
-GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
+GMT_PLOT_CMD=GMT_PLOT_CMD." with table; unset table";
 
 #print(GMT_PLOT_CMD)
 
 eval(GMT_SET_TABLE);
 eval(GMT_PLOT_CMD);
-
-unset table
 
 undefine GMT_SET_TABLE GMT_PLOT_CMD
 

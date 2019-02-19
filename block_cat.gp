@@ -27,44 +27,44 @@
 
 
 # concatenate datablocks together
+# N.B. The data is read in as strings. This means that:
+#   a) Any 'set datafile missing ...' specification is reset
+#   b) The read values may be invalid and contain things like NaNs etc
+#   c) Invalid data processing is deferred to the use of the block, not
+#       here.
 
 # ARG1 is out datablock name. Do not include the '$'.
-# ARG2 ... are the datablock names to be concatenated together
+# ARG2 is the number of columns to include
+# ARG3 ... are the datablock names to be concatenated together
 
-if(ARGC < 2) {
-  print(sprintf("%s: [output blockname] [input blockname 1] [input blockname 2] [[[input blockname N] ... ]",ARG0));
+if(ARGC < 3 || ARG2 < 1) {
+  print(sprintf("%s: [output blockname] [num columns] [input blockname 1] [input blockname 2] [[[input blockname N] ... ]",ARG0));
 
   exit error 'exiting...'
 }
 
 set style data points
+unset datafile
 set datafile separator tab
-set datafile missing NaN
 set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
-eval(sprintf("stats $%s matrix nooutput name 'GMT_BLOCK_CAT_TMP'",ARG2));
-
-# stats always includes the pseudocolumn 0
-if(GMT_BLOCK_CAT_TMP_size_x < 2) {
-	print( \
-		sprintf("input datablock $%s requires at least one column of data",ARG1));
-
-  exit error 'exiting...'
-}
-
 GMT_BLOCK_CAT_using_str='using (strcol(1))';
 
-do for [i=2 : GMT_BLOCK_CAT_TMP_size_x-1] {
-	GMT_BLOCK_CAT_using_str=GMT_BLOCK_CAT_using_str.':(strcol('.i.'))';
+if(ARG2 > 1) {
+  do for [i=2 : ARG2] {
+    GMT_BLOCK_CAT_using_str=GMT_BLOCK_CAT_using_str.':(strcol('.i.'))';
+  }
 }
 
 GMT_BLOCK_CAT_SET_TABLE=sprintf("set table $%s append separator tab",ARG1);
 #GMT_BLOCK_CAT_SET_TABLE=sprintf("set table '%s' append separator tab",ARG1);
 
-do for [i=2 : ARGC] {
+do for [i=3 : ARGC] {
+#   eval(sprintf("call 'block_dump.gp' %s '%s.txt' %s", \
+#     value('ARG'.i),value('ARG'.i),ARG2));
 	eval(GMT_BLOCK_CAT_SET_TABLE);
 	eval(sprintf("plot $%s %s with table",value('ARG'.i),GMT_BLOCK_CAT_using_str));
 	unset table;

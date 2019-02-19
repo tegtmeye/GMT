@@ -23,21 +23,18 @@
 #  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 #  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 #  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+#/
 
-# create a datablock from an input file of column data with headers
-# N.B. The data is read in as strings. This means that:
-#   a) Any 'set datafile missing ...' specification is reset
-#   b) The read values may be invalid and contain things like NaNs etc
-#   c) Invalid data processing is deferred to the use of the block, not
-#       here.
+# strip invalid and missing values from column data, essentially just
+# sets datafile missing ARG
 
-# ARG1 is the data filename
-# ARG2 is the datablock name -- do not include the '$'
-# ARG3 ... are the column names to include in the block (can be repeated)
+# ARG1 is the input datablock name -- do not include the '$'
+# ARG2 is the output datablock name -- do not include the '$'
+# ARG3 is the argument to 'set datafile missing X'
+# ARG4 ... are the remaining column numbers to be included in the block (can be #		repeated)
 
-if(ARGC <3) {
-  print(sprintf("%s: [data filename] [output blockname] [columnname] [[columnname] ... ]",ARG0));
+if(ARGC < 4) {
+  print(sprintf("%s: [input blockname] [output blockname] [missing value]  [[included_column] ... ]",ARG0));
 
   exit error 'exiting...'
 }
@@ -45,30 +42,25 @@ if(ARGC <3) {
 set style data points
 unset datafile
 set datafile separator tab
-set key autotitle columnhead
+set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
 GMT_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
-#GMT_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
 
-GMT_PLOT_CMD=sprintf("plot '%s' using (strcol('%s'))",ARG1,ARG3);
+GMT_PLOT_CMD=sprintf("plot $%s using (column(%s))",ARG1,ARG4);
 
-do for [i=4:ARGC] {
-	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol('%s'))",value('ARG'.i));
+do for [i=5:ARGC] {
+	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(column(%s))",value('ARG'.i));
 }
 
-GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
+GMT_PLOT_CMD=GMT_PLOT_CMD." with table; unset table";
 
-# print(GMT_PLOT_CMD)
+eval(sprintf("set datafile missing %s",ARG3));
 
 eval(GMT_SET_TABLE);
 eval(GMT_PLOT_CMD);
-
-unset table
-
-set key autotitle
 
 undefine GMT_SET_TABLE GMT_PLOT_CMD
 

@@ -25,19 +25,20 @@
 #  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# create a datablock from an input file of column data with headers
-# N.B. The data is read in as strings. This means that:
-#   a) Any 'set datafile missing ...' specification is reset
-#   b) The read values may be invalid and contain things like NaNs etc
-#   c) Invalid data processing is deferred to the use of the block, not
-#       here.
+# apply the given binary operator to two specified columns of data on an input
+# block to produce a column in an output block. The given binary operator is
+# provided 'x' for the first column and 'y' for the second. eg
+# "x + y" or "x < y" or "external_function(x,y)" etc
 
-# ARG1 is the data filename
-# ARG2 is the datablock name -- do not include the '$'
-# ARG3 ... are the column names to include in the block (can be repeated)
+# ARG1 is the input datablock name -- do not include the '$'
+# ARG2 is the output datablock name -- do not include the '$'
+# ARG3 is the first column in the input datablock
+# ARG4 is the second column in the input datablock
+# ARG5 is the binary operation in 'x' and 'y'
+# ARG6 ... are the remaining column numbers to be included in the block (can be #		repeated)
 
-if(ARGC <3) {
-  print(sprintf("%s: [data filename] [output blockname] [columnname] [[columnname] ... ]",ARG0));
+if(ARGC < 5) {
+  print(sprintf("%s: [input blockname] [output blockname] [column1] [column2] [binary operator] [[included_column] ... ]",ARG0));
 
   exit error 'exiting...'
 }
@@ -45,30 +46,32 @@ if(ARGC <3) {
 set style data points
 unset datafile
 set datafile separator tab
-set key autotitle columnhead
+set key autotitle
 
 set xrange [*:*]
 set yrange [*:*]
 
-GMT_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
-#GMT_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
+eval(sprintf("GMT_BLOCK_BINARYOP_fn(x,y)=%s",ARG5));
 
-GMT_PLOT_CMD=sprintf("plot '%s' using (strcol('%s'))",ARG1,ARG3);
+GMT_BLOCK_BINARYOP_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
 
-do for [i=4:ARGC] {
-	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol('%s'))",value('ARG'.i));
+GMT_BLOCK_BINARYOP_PLOT_CMD= \
+  sprintf("plot $%s using (GMT_BLOCK_BINARYOP_fn(column(%s),column(%s)))", \
+    ARG1,ARG3,ARG4);
+
+do for [i=6:ARGC] {
+	GMT_BLOCK_BINARYOP_PLOT_CMD= \
+	  GMT_BLOCK_BINARYOP_PLOT_CMD.sprintf(":(column(%s))",value('ARG'.i));
 }
 
-GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
+GMT_BLOCK_BINARYOP_PLOT_CMD= \
+  GMT_BLOCK_BINARYOP_PLOT_CMD." with table; unset table";
 
-# print(GMT_PLOT_CMD)
+# print(GMT_BLOCK_BINARYOP_SET_TABLE)
+# print(GMT_BLOCK_BINARYOP_PLOT_CMD)
 
-eval(GMT_SET_TABLE);
-eval(GMT_PLOT_CMD);
+eval(GMT_BLOCK_BINARYOP_SET_TABLE);
+eval(GMT_BLOCK_BINARYOP_PLOT_CMD);
 
-unset table
-
-set key autotitle
-
-undefine GMT_SET_TABLE GMT_PLOT_CMD
+undefine GMT_BLOCK_BINARYOP_* GPFUN_GMT_BLOCK_BINARYOP_*
 
