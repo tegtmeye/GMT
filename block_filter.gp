@@ -36,17 +36,35 @@
 # ARG1 is the input datablock name -- do not include the '$'
 # ARG2 is the output datablock name -- do not include the '$'
 # ARG3 is the filtered column number
-# ARG4 is the filter expression where 'val' means the current value in the given
-#		column. If this expression evaluates to true, val is included in the results
-#   otherwise the column value is 'NaN'
-#     eq (val == 5) or (val eq 'hello')
+# ARG4 is a unary predicate expression name. If this expression
+#     evaluates to true, val is included in the results otherwise the
+#     column value is 'NaN'. For example, given the predicates:
+#       pred(val)=val == 5;  or pred(val)=(val eq 'hello');
+#     The the value of ARG4 is the string 'pred'
+#
 # ARG5 ... are the remaining column numbers to be included in the block (can be #		repeated)
+
+# There is currently a bug in gnuplot that causes extra whitespace to be added
+# at the end or the beginning of table plotting. See bug #2140. Unfortunately
+# another bug exists where attempts to sanitize this extra value causes bad data
+# to be encoded in the result. Unclear what is going on or even how to
+# reliably reproduce. Until a fix is made, ensure the predicate can
+# handle the extra padding.
 
 if(ARGC < 4) {
   print(sprintf("%s: [input blockname] [output blockname] [filter_column_no] [filter_expression] [[included_column] ... ]",ARG0));
 
   exit error 'exiting...'
 }
+
+if(exists('GPFUN_'.ARG4) == 0) {
+  print("Unary predicate '".ARG4."' does not exist.");
+
+  exit error 'exiting...'
+}
+
+
+
 
 set style data points
 unset datafile
@@ -56,7 +74,23 @@ set key autotitle
 set xrange [*:*]
 set yrange [*:*]
 
-eval(sprintf("GMT_BLOCK_FILTER_filter(val,outval)=((%s)?outval:NaN)",ARG4));
+# GMT_BLOCK_FILTER_sanitize(val)=word(val,1);
+
+# eval( \
+#   sprintf("GMT_BLOCK_FILTER_unary_filter(val)= \
+#     ((%s(GMT_BLOCK_FILTER_sanitize(val)))?val:NaN)",ARG4));
+#
+# eval( \
+#   sprintf("GMT_BLOCK_FILTER_binary_filter(val,outval)= \
+#     ((%s(GMT_BLOCK_FILTER_sanitize(val)))?outval:NaN)",ARG4));
+
+eval( \
+  sprintf("GMT_BLOCK_FILTER_unary_filter(val)= \
+    ((%s(val))?val:NaN)",ARG4));
+
+eval( \
+  sprintf("GMT_BLOCK_FILTER_binary_filter(val,outval)= \
+    ((%s(val))?outval:NaN)",ARG4));
 
 
 
@@ -65,23 +99,22 @@ GMT_BLOCK_FILTER_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
 
 
 GMT_BLOCK_FILTER_PLOT_CMD= \
-	sprintf("plot $%s using (GMT_BLOCK_FILTER_filter(strcol(%s),strcol(%s)))", \
-	  ARG1,ARG3,ARG3);
+	sprintf("plot $%s using \
+	  (GMT_BLOCK_FILTER_unary_filter(strcol(%s)))",ARG1,ARG3);
 
 do for [i=5:ARGC] {
 	GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD.\
-    sprintf(":(GMT_BLOCK_FILTER_filter(strcol(%s),strcol(%s)))", \
+    sprintf(":(GMT_BLOCK_FILTER_binary_filter(strcol(%s),strcol(%s)))", \
       ARG3,value('ARG'.i));
 }
 
-GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD." with table";
+GMT_BLOCK_FILTER_PLOT_CMD=GMT_BLOCK_FILTER_PLOT_CMD." with table; unset table";
 
+#print(GMT_BLOCK_FILTER_SET_TABLE)
 #print(GMT_BLOCK_FILTER_PLOT_CMD)
 
 eval(GMT_BLOCK_FILTER_SET_TABLE);
 eval(GMT_BLOCK_FILTER_PLOT_CMD);
-
-unset table
 
 
 undefine GMT_BLOCK_FILTER_* GPFUN_GMT_BLOCK_FILTER_*

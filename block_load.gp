@@ -31,6 +31,8 @@
 #   b) The read values may be invalid and contain things like NaNs etc
 #   c) Invalid data processing is deferred to the use of the block, not
 #       here.
+#   d) Missing values are replaced by NaNs because of current limitations with
+#       how gnuplot handles missing data in columns.
 
 # ARG1 is the data filename
 # ARG2 is the datablock name -- do not include the '$'
@@ -50,13 +52,15 @@ set key autotitle columnhead
 set xrange [*:*]
 set yrange [*:*]
 
+GMT_sanitize(val)=(word(val,1) eq '' ? NaN : val);
+
 GMT_SET_TABLE=sprintf("set table $%s separator tab",ARG2);
 #GMT_SET_TABLE=sprintf("set table '%s' separator tab",ARG2);
 
-GMT_PLOT_CMD=sprintf("plot '%s' using (strcol('%s'))",ARG1,ARG3);
+GMT_PLOT_CMD=sprintf("plot '%s' using (GMT_sanitize(strcol('%s')))",ARG1,ARG3);
 
 do for [i=4:ARGC] {
-	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(strcol('%s'))",value('ARG'.i));
+	GMT_PLOT_CMD=GMT_PLOT_CMD.sprintf(":(GMT_sanitize(strcol('%s')))",value('ARG'.i));
 }
 
 GMT_PLOT_CMD=GMT_PLOT_CMD." with table";
